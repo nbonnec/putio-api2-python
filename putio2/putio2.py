@@ -20,14 +20,13 @@ Usage:
 
 """
 
-import os
-import re
+import datetime as dt
 import json
 import logging
-from urllib import urlencode
-
-import requests
-import iso8601
+import os
+import re
+from urllib.parse import urlencode
+from . import requests
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +101,7 @@ class Client(object):
 
         logger.debug('content: %s', r.content)
         try:
-            r = json.loads(r.content)
+            r = json.loads(r.content.decode('utf-8'))
         except ValueError:
             raise Exception('Server didn\'t send valid JSON:\n%s\n%s' % (r, r.content))
 
@@ -119,12 +118,12 @@ class _BaseResource(object):
 
         self.__dict__.update(resource_dict)
         try:
-            self.created_at = iso8601.parse_date(self.created_at)
+            self.created_at = dt.datetime.strptime(self.created_at, "%Y-%m-%dT%H:%M:%S")
         except:
             pass
 
     def __str__(self):
-        return self.name.encode('utf-8')
+        return self.name
 
     def __repr__(self):
         try:
@@ -144,7 +143,7 @@ class _File(_BaseResource):
         files = [cls(f) for f in files]
         if as_dict:
             ids = [f.id for f in files]
-            return dict(zip(ids, files))
+            return dict(list(zip(ids, files)))
         return files
 
     @classmethod
@@ -184,8 +183,8 @@ class _File(_BaseResource):
     @classmethod
     def get(cls, id):
         d = cls.client.request('/files/%i' % id, method='GET')
-        t = d['file']
-        return cls(t)
+        f = d['file']
+        return cls(f)
 
 
 class _Transfer(_BaseResource):
@@ -197,7 +196,7 @@ class _Transfer(_BaseResource):
         transfers = [cls(t) for t in transfers]
         if as_dict:
             ids = [t.id for t in transfers]
-            return dict(zip(ids, transfers))
+            return dict(list(zip(ids, transfers)))
         return transfers
 
     @classmethod
@@ -207,7 +206,7 @@ class _Transfer(_BaseResource):
             callback_url=callback_url))
         t = d['transfer']
         return cls(t)
-    
+
     @classmethod
     def get(cls, id):
         d = cls.client.request('/transfers/%i' % id, method='GET')
