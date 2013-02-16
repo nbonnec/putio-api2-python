@@ -26,7 +26,7 @@ import logging
 import os
 import re
 from urllib.parse import urlencode
-from . import requests
+import requests
 
 logger = logging.getLogger(__name__)
 
