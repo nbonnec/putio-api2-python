@@ -171,7 +171,7 @@ class _File(_BaseResource):
         if range:
             return r.content
 
-        filename = re.match('attachment; filename\="(.*)"', r.headers['Content-Disposition']).groups()[0]
+        filename = re.match('attachment; filename\=(.*)', r.headers['content-disposition']).groups()[0]
         with open(os.path.join(dest, filename), 'wb') as f:
             for data in r.iter_content():
                 f.write(data)
