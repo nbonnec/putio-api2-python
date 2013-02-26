@@ -76,7 +76,8 @@ class Client(object):
         self.File     = type('File',     (_File,),     attributes)
         self.Transfer = type('Transfer', (_Transfer,), attributes)
 
-    def request(self, path, method='GET', params=None, data=None, files=None, headers=None, raw=False):
+    def request(self, path, method='GET', params=None, data=None, files=None,
+            headers=None, raw=False, redir=True):
         '''
         Wrapper around requests.request()
 
@@ -93,7 +94,8 @@ class Client(object):
         url = API_URL + path
         logger.debug('url: %s', url)
 
-        r = requests.request(method, url, params=params, data=data, files=files, headers=headers, allow_redirects=True)
+        r = requests.request(method, url, params=params, data=data,
+                files=files, headers=headers, allow_redirects=redir)
         logger.debug('response: %s', r)
 
         if raw:
@@ -103,7 +105,8 @@ class Client(object):
         try:
             r = json.loads(r.content.decode('utf-8'))
         except ValueError:
-            raise Exception('Server didn\'t send valid JSON:\n%s\n%s' % (r, r.content))
+            raise Exception('Server didn\'t send valid JSON:\n%s\n%s' %
+                    (r, r.content))
 
         if r['status'] == 'ERROR':
             raise Exception(r['error_type'])
@@ -118,7 +121,8 @@ class _BaseResource(object):
 
         self.__dict__.update(resource_dict)
         try:
-            self.created_at = dt.datetime.strptime(self.created_at, "%Y-%m-%dT%H:%M:%S")
+            self.created_at = dt.datetime.strptime(self.created_at,
+                    "%Y-%m-%dT%H:%M:%S")
         except:
             pass
 
@@ -129,7 +133,8 @@ class _BaseResource(object):
         try:
             # shorten name for display
             name = self.name[:17] + '...' if len(self.name) > 20 else self.name
-            return '%s(id=%s, name="%s")' % (self.__class__.__name__, self.id, str(self))
+            return '%s(id=%s, name="%s")' % (self.__class__.__name__, self.id,
+                                             str(self))
         except:
             return object.__repr__()
 
@@ -160,21 +165,28 @@ class _File(_BaseResource):
         '''Helper function for listing inside of directory'''
         return self.list(parent_id=self.id)
 
-    def download(self, dest='.', range=None):
+    def download(self, dest='.', range=None, ext=False):
         if range:
             headers = {'Range': 'bytes=%s-%s' % range}
         else:
             headers = None
 
-        r = self.client.request('/files/%s/download' % self.id, raw=True, headers=headers)
+        if ext:
+            r = self.client.request('/files/%s/download' % self.id, raw=True,
+                    headers=headers, redir=False)
+            return r.headers['Location']
+        else:
+            r = self.client.request('/files/%s/download' % self.id, raw=True,
+                    headers=headers)
 
-        if range:
-            return r.content
+            if range:
+                return r.content
 
-        filename = re.match('attachment; filename\=(.*)', r.headers['content-disposition']).groups()[0]
-        with open(os.path.join(dest, filename), 'wb') as f:
-            for data in r.iter_content():
-                f.write(data)
+            filename = re.match('attachment; filename\=(.*)',
+                    r.headers['content-disposition']).groups()[0]
+            with open(os.path.join(dest, filename), 'wb') as f:
+                for data in r.iter_content():
+                    f.write(data)
 
     def delete(self):
         file_id = {'file_ids': self.id}
