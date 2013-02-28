@@ -75,6 +75,7 @@ class Client(object):
         attributes = {'client': self}
         self.File     = type('File',     (_File,),     attributes)
         self.Transfer = type('Transfer', (_Transfer,), attributes)
+        self.Account = type('Account',   (_Account,),  attributes)
 
     def request(self, path, method='GET', params=None, data=None, files=None,
             headers=None, raw=False, redir=True):
@@ -127,7 +128,10 @@ class _BaseResource(object):
             pass
 
     def __str__(self):
-        return self.name
+        try:
+            return self.name
+        except AttributeError:
+            return ""
 
     def __repr__(self):
         try:
@@ -202,7 +206,7 @@ class _File(_BaseResource):
 class _Transfer(_BaseResource):
 
     @classmethod
-    def list(cls, parent_id=0, as_dict=False):
+    def list(cls, as_dict=False):
         d = cls.client.request('/transfers/list')
         transfers = d['transfers']
         transfers = [cls(t) for t in transfers]
@@ -224,3 +228,12 @@ class _Transfer(_BaseResource):
         d = cls.client.request('/transfers/%i' % id, method='GET')
         t = d['transfer']
         return cls(t)
+
+class _Account(_BaseResource):
+
+    @classmethod
+    def info(cls):
+        d = cls.client.request('/account/info')
+        a = d['info']
+        return cls(a)
+
