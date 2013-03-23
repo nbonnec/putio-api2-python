@@ -63,6 +63,17 @@ class AuthHelper(object):
         d = json.loads(r.content)
         return d['access_token']
 
+class Error(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+class StatusError(Error):
+    pass
+
+class JSONError(Error):
+    pass
 
 class Client(object):
 
@@ -106,11 +117,11 @@ class Client(object):
         try:
             r = json.loads(r.content.decode('utf-8'))
         except ValueError:
-            raise Exception('Server didn\'t send valid JSON:\n%s\n%s' %
+            raise JSONError('Server didn\'t send valid JSON:\n%s\n%s' %
                     (r, r.content))
 
         if r['status'] == 'ERROR':
-            raise Exception(r['error_type'])
+            raise StatusError(r['error_type'])
 
         return r
 
